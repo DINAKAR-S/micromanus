@@ -124,16 +124,24 @@ export async function POST(request: Request) {
         if (!finalText) finalText = "I couldn't produce an answer within the step limit.";
         send({ type: "assistant", text: finalText });
 
-        // Persist assistant turn, record usage, spend 1 credit.
+        // Persist assistant turn, record usage, spend 1 credit — each step isolated so one
+        // failure never blocks the others or the final "done" event.
         const cost = costOf(model, totals);
-        await supabase.from("messages").insert({ thread_id: threadId, user_id: userId, role: "assistant", content: finalText });
-        await supabase.from("usage").insert({
-          thread_id: threadId, user_id: userId, model_id: model,
-          input_tokens: totals.input, output_tokens: totals.output, cache_tokens: totals.cache, cost_usd: cost,
-        });
-        const { data: p2 } = await admin.from("profiles").select("credits").eq("id", userId).single();
-        const left = Math.max(0, (p2?.credits ?? 1) - 1);
-        await admin.from("profiles").update({ credits: left }).eq("id", userId);
+        let left = 0;
+        try {
+          await supabase.from("messages").insert({ thread_id: threadId, user_id: userId, role: "assistant", content: finalText });
+        } catch {}
+        try {
+          await supabase.from("usage").insert({
+            thread_id: threadId, user_id: userId, model_id: model,
+            input_tokens: totals.input, output_tokens: totals.output, cache_tokens: totals.cache, cost_usd: cost,
+          });
+        } catch {}
+        try {
+          const { data: p2 } = await admin.from("profiles").select("credits").eq("id", userId).single();
+          left = Math.max(0, (p2?.credits ?? 1) - 1);
+          await admin.from("profiles").update({ credits: left }).eq("id", userId);
+        } catch {}
 
         send({ type: "done", usage: totals, cost, creditsLeft: left });
       } catch (e) {

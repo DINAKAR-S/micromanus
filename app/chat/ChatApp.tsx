@@ -4,7 +4,7 @@ import { MODELS, PROVIDER_LABEL, findModel, type Provider } from "@/lib/models";
 import { mdToHtml } from "@/lib/md";
 import { ProviderIcon } from "./icons";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUp, Check, ChevronDown, FileDown, KeyRound, Plus, BarChart3, LogOut } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, FileDown, KeyRound, Plus, BarChart3, LogOut, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 type Thread = { id: string; title: string; created_at: string };
@@ -76,6 +76,13 @@ export default function ChatApp({
     const r = await fetch(`/api/threads?threadId=${id}`);
     const j = await r.json().catch(() => ({ messages: [] }));
     setMessages((j.messages as Msg[]) || []);
+  }
+
+  async function deleteThread(id: string) {
+    const r = await fetch(`/api/threads?threadId=${id}`, { method: "DELETE" });
+    if (!r.ok) return;
+    setThreads((ts) => ts.filter((t) => t.id !== id));
+    if (active === id) { setActive(null); setMessages([]); }
   }
 
   async function send(override?: string) {
@@ -161,10 +168,17 @@ export default function ChatApp({
         </div>
         <div className="flex-1 overflow-y-auto px-2">
           {threads.map((t) => (
-            <button key={t.id} onClick={() => openThread(t.id)}
-              className={`mb-1 w-full truncate rounded-lg px-3 py-2 text-left text-sm ${active === t.id ? "bg-edge text-white" : "text-white/70 hover:bg-panel"}`}>
-              {t.title}
-            </button>
+            <div key={t.id}
+              className={`group mb-1 flex items-center rounded-lg ${active === t.id ? "bg-edge" : "hover:bg-panel"}`}>
+              <button onClick={() => openThread(t.id)}
+                className={`flex-1 truncate px-3 py-2 text-left text-sm ${active === t.id ? "text-white" : "text-white/70"}`}>
+                {t.title}
+              </button>
+              <button onClick={() => deleteThread(t.id)} aria-label="Delete chat"
+                className="mr-1 rounded p-1.5 text-white/30 opacity-0 transition hover:text-red-400 group-hover:opacity-100">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           ))}
           {threads.length === 0 && <div className="px-3 py-2 text-sm text-white/40">No chats yet.</div>}
         </div>

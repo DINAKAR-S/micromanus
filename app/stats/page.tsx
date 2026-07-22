@@ -11,7 +11,6 @@ type Row = {
   output_tokens: number;
   cache_tokens: number;
   cost_usd: number;
-  threads: { title: string } | null;
 };
 
 export default async function Stats() {
@@ -19,17 +18,19 @@ export default async function Stats() {
   if (!user) redirect("/login");
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("usage")
-    .select("thread_id, model_id, input_tokens, output_tokens, cache_tokens, cost_usd, threads(title)")
-    .order("created_at", { ascending: false });
-  const rows = (data as unknown as Row[]) || [];
+  // Fetch usage + thread titles separately (no embedded join) for robustness.
+  const [{ data: usageData }, { data: threadData }] = await Promise.all([
+    supabase.from("usage").select("thread_id, model_id, input_tokens, output_tokens, cache_tokens, cost_usd").order("created_at", { ascending: false }),
+    supabase.from("threads").select("id, title"),
+  ]);
+  const rows = (usageData as Row[]) || [];
+  const titleById = new Map((threadData || []).map((t: { id: string; title: string }) => [t.id, t.title]));
 
   // Group by chat.
   const byChat = new Map<string, { title: string; models: Set<string>; input: number; output: number; cache: number; cost: number; runs: number }>();
   for (const r of rows) {
     const key = r.thread_id || "unknown";
-    const g = byChat.get(key) || { title: r.threads?.title || "Deleted chat", models: new Set<string>(), input: 0, output: 0, cache: 0, cost: 0, runs: 0 };
+    const g = byChat.get(key) || { title: (r.thread_id && titleById.get(r.thread_id)) || "Deleted chat", models: new Set<string>(), input: 0, output: 0, cache: 0, cost: 0, runs: 0 };
     g.models.add(findModel(r.model_id)?.label || r.model_id);
     g.input += r.input_tokens; g.output += r.output_tokens; g.cache += r.cache_tokens;
     g.cost += Number(r.cost_usd); g.runs += 1;
