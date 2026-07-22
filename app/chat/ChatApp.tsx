@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { MODELS, PROVIDER_LABEL, findModel, type Provider } from "@/lib/models";
 import { mdToHtml } from "@/lib/md";
 import { ProviderIcon } from "./icons";
@@ -17,7 +16,6 @@ const DEFAULT_CFG: KeyCfg = { provider: "openai", model: "gpt-4o-mini", apiKey: 
 export default function ChatApp({
   initialThreads, credits, email, userId,
 }: { initialThreads: Thread[]; credits: number; email: string; userId: string }) {
-  const supabase = createClient();
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
   const [active, setActive] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -49,17 +47,25 @@ export default function ChatApp({
     localStorage.setItem("mm_key", JSON.stringify(next));
   }
 
+  async function createThread(title: string): Promise<Thread | null> {
+    const r = await fetch("/api/threads", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as Thread;
+  }
+
   async function newChat() {
-    const { data } = await supabase.from("threads").insert({ title: "New chat", user_id: userId }).select().single();
+    const data = await createThread("New chat");
     if (data) { setThreads([data, ...threads]); setActive(data.id); setMessages([]); }
   }
 
   async function openThread(id: string) {
     setActive(id);
-    const { data } = await supabase
-      .from("messages").select("role, content").eq("thread_id", id)
-      .in("role", ["user", "assistant"]).order("created_at", { ascending: true });
-    setMessages((data as Msg[]) || []);
+    const r = await fetch(`/api/threads?threadId=${id}`);
+    const j = await r.json().catch(() => ({ messages: [] }));
+    setMessages((j.messages as Msg[]) || []);
   }
 
   async function send(override?: string) {
@@ -69,9 +75,8 @@ export default function ChatApp({
 
     let threadId = active;
     if (!threadId) {
-      const title = userMsg.slice(0, 48);
-      const { data } = await supabase.from("threads").insert({ title, user_id: userId }).select().single();
-      if (!data) return;
+      const data = await createThread(userMsg.slice(0, 48));
+      if (!data) { setMessages((m) => [...m, { role: "assistant", content: "⚠️ Could not start a chat. Try signing out and back in." }]); return; }
       threadId = data.id; setThreads([data, ...threads]); setActive(data.id);
     }
 
