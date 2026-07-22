@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 export default function PaywallForm({ justPaid }: { justPaid: boolean }) {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState("SID_DRDROID");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState<"" | "coupon" | "pay">("");
 
@@ -45,11 +45,15 @@ export default function PaywallForm({ justPaid }: { justPaid: boolean }) {
           Get <span className="text-accent2 font-semibold">5 credits</span> (1 credit = 1 research run).
         </p>
 
-        {msg && <div className="mt-5 rounded-lg border border-edge bg-ink px-4 py-3 text-sm text-white/80">{msg}</div>}
+        <div className="mt-5 rounded-lg border border-accent2/30 bg-accent2/10 px-4 py-3 text-center text-sm text-white/85">
+          Reviewing this? The coupon <span className="font-semibold text-accent2">SID_DRDROID</span> is pre-filled below. Just click <span className="font-semibold">Redeem</span> for 5 free credits.
+        </div>
+
+        {msg && <div className="mt-4 rounded-lg border border-edge bg-ink px-4 py-3 text-sm text-white/80">{msg}</div>}
 
         {/* Coupon */}
         <div className="mt-6">
-          <label className="text-xs uppercase tracking-wide text-white/40">Have a coupon?</label>
+          <label className="text-xs uppercase tracking-wide text-white/40">Coupon (pre-filled)</label>
           <div className="mt-2 flex gap-2">
             <input
               value={code}
