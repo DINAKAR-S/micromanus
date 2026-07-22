@@ -352,10 +352,15 @@ function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyC
         </select>
 
         <label className="mt-4 block text-xs uppercase text-white/40">Model</label>
-        <select value={draft.model} onChange={(e) => setDraft({ ...draft, model: e.target.value })}
+        <select value={models.some((m) => m.id === draft.model) ? draft.model : ""} onChange={(e) => setDraft({ ...draft, model: e.target.value })}
           className="mt-1 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-sm">
+          <option value="" disabled>Choose a model…</option>
           {models.map((m) => <option key={m.id} value={m.id}>{m.label} · ${m.input}/{m.output} per 1M</option>)}
         </select>
+        <input value={draft.model} onChange={(e) => setDraft({ ...draft, model: e.target.value })}
+          placeholder="or exact model ID, e.g. claude-3-5-sonnet-20241022"
+          className="mt-2 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-xs text-white/70 outline-none focus:border-accent" />
+        <p className="mt-1 text-[11px] text-white/35">Model ID sent to the provider. Must be an exact ID your key can access.</p>
 
         <label className="mt-4 block text-xs uppercase text-white/40">API key</label>
         <input type="password" value={draft.apiKey} onChange={(e) => setDraft({ ...draft, apiKey: e.target.value })}
