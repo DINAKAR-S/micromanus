@@ -47,7 +47,7 @@ export default async function Stats() {
     <main className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center justify-between">
-          <Link href="/chat" className="text-sm text-white/50 hover:text-white/80">← Back to chat</Link>
+          <Link href="/chat" className="rounded-lg border border-edge px-3 py-1.5 text-sm text-white/70 hover:bg-panel">Back to chat</Link>
           <h1 className="text-2xl font-bold">Usage &amp; cost</h1>
         </div>
 
@@ -94,7 +94,7 @@ export default async function Stats() {
                 </tr>
               ))}
               {chats.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-10 text-center text-white/40">No usage yet — run a research query first.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-white/40">No usage yet. Run a research query first.</td></tr>
               )}
             </tbody>
           </table>

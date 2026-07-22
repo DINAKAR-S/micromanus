@@ -11,7 +11,7 @@ export default function PaywallForm({ justPaid }: { justPaid: boolean }) {
   // Returning from Stripe success: the webhook grants credits; poll then move on.
   useEffect(() => {
     if (!justPaid) return;
-    setMsg("Payment received — activating your credits…");
+    setMsg("Payment received. Activating your credits…");
     const t = setInterval(() => router.refresh(), 1500);
     return () => clearInterval(t);
   }, [justPaid, router]);
@@ -38,7 +38,7 @@ export default function PaywallForm({ justPaid }: { justPaid: boolean }) {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
-      <a href="/login" className="mb-8 text-sm text-white/50 hover:text-white/80">← Back</a>
+      <a href="/" className="mb-8 text-lg font-bold tracking-tight text-white/90">Micro<span className="text-accent">Manus</span></a>
       <div className="w-full max-w-md rounded-2xl border border-edge bg-panel p-8">
         <h1 className="text-2xl font-bold text-center">Unlock MicroManus</h1>
         <p className="mt-2 text-center text-sm text-white/60">
@@ -80,7 +80,7 @@ export default function PaywallForm({ justPaid }: { justPaid: boolean }) {
           {busy === "pay" ? "Starting checkout…" : "Add a card & pay $5"}
         </button>
         <p className="mt-3 text-center text-xs text-white/40">
-          Stripe test mode — use card 4242 4242 4242 4242, any future date & CVC.
+          Stripe test mode. Use card 4242 4242 4242 4242, any future date and CVC.
         </p>
       </div>
     </main>

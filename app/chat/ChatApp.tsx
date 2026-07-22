@@ -185,7 +185,7 @@ export default function ChatApp({
                 <div className="mt-8"><Composer {...{ taRef, input, setInput, autosize, send, running, cfg, saveCfg, setShowSettings }} /></div>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
                   {[
-                    "Recent California forest fires — causes & prevention",
+                    "Recent California forest fires: causes and prevention",
                     "State of solid-state batteries in 2026",
                     "Compare Perplexity vs Manus UX",
                   ].map((s) => (
@@ -351,7 +351,7 @@ function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyC
         <label className="mt-4 block text-xs uppercase text-white/40">Model</label>
         <select value={draft.model} onChange={(e) => setDraft({ ...draft, model: e.target.value })}
           className="mt-1 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-sm">
-          {models.map((m) => <option key={m.id} value={m.id}>{m.label} — ${m.input}/{m.output} per 1M</option>)}
+          {models.map((m) => <option key={m.id} value={m.id}>{m.label} · ${m.input}/{m.output} per 1M</option>)}
         </select>
 
         <label className="mt-4 block text-xs uppercase text-white/40">API key</label>
