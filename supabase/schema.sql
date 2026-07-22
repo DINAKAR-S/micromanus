@@ -53,13 +53,27 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
--- Row Level Security: users see only their own rows.
-alter table profiles enable row level security;
-alter table threads  enable row level security;
-alter table messages enable row level security;
-alter table usage    enable row level security;
+-- Optional: a user's OWN model key, saved encrypted (AES-256-GCM) so it syncs across
+-- their devices. Opt-in only; default flow keeps the key in the browser. key_cipher is
+-- opaque ciphertext; the app never stores or preloads any key of its own.
+create table if not exists user_keys (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  provider text not null,
+  model text not null,
+  base_url text not null default '',
+  key_cipher text not null,
+  updated_at timestamptz not null default now()
+);
 
-create policy "own profile"  on profiles for all using (auth.uid() = id)      with check (auth.uid() = id);
-create policy "own threads"  on threads  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own messages" on messages for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own usage"    on usage    for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- Row Level Security: users see only their own rows.
+alter table profiles  enable row level security;
+alter table threads   enable row level security;
+alter table messages  enable row level security;
+alter table usage     enable row level security;
+alter table user_keys enable row level security;
+
+create policy "own profile"  on profiles  for all using (auth.uid() = id)      with check (auth.uid() = id);
+create policy "own threads"  on threads   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own messages" on messages  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own usage"    on usage     for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own keys"     on user_keys for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

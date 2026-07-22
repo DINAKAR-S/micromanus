@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdmin } from "@/lib/supabase/admin";
 import { PROVIDER_BASE_URL, costOf, type Provider } from "@/lib/models";
 import { tavilySearch } from "@/lib/search";
+import { decrypt } from "@/lib/crypto";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -47,8 +48,16 @@ export async function POST(request: Request) {
   if (!auth.user) return new Response("Unauthorized", { status: 401 });
   const userId = auth.user.id;
 
-  if (!apiKey) return new Response("Missing API key", { status: 400 });
   if (!threadId || !content) return new Response("Missing threadId or content", { status: 400 });
+
+  // Resolve the model key: request key (browser-local) OR the user's saved encrypted key.
+  let key = apiKey as string | undefined;
+  if (!key) {
+    const { data: saved } = await supabase
+      .from("user_keys").select("key_cipher").eq("user_id", userId).single();
+    if (saved?.key_cipher) { try { key = decrypt(saved.key_cipher); } catch {} }
+  }
+  if (!key) return new Response("Missing API key", { status: 400 });
 
   // Credit gate.
   const admin = createAdmin();
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: true });
 
   const client = new OpenAI({
-    apiKey,
+    apiKey: key,
     baseURL: baseUrl || PROVIDER_BASE_URL[(provider as Provider) || "openai"],
   });
 

@@ -9,9 +9,9 @@ import Link from "next/link";
 
 type Thread = { id: string; title: string; created_at: string };
 type Msg = { role: string; content: string };
-type KeyCfg = { provider: Provider; model: string; apiKey: string; baseUrl: string };
+type KeyCfg = { provider: Provider; model: string; apiKey: string; baseUrl: string; saved?: boolean };
 
-const DEFAULT_CFG: KeyCfg = { provider: "openai", model: "gpt-4o-mini", apiKey: "", baseUrl: "" };
+const DEFAULT_CFG: KeyCfg = { provider: "openai", model: "gpt-4o-mini", apiKey: "", baseUrl: "", saved: false };
 
 export default function ChatApp({
   initialThreads, credits, email, userId,
@@ -29,19 +29,28 @@ export default function ChatApp({
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem("mm_key");
-    if (raw) {
+    const snap = (c: KeyCfg): KeyCfg => {
+      if (!MODELS.find((m) => m.id === c.model && m.provider === c.provider)) {
+        const first = MODELS.find((m) => m.provider === c.provider);
+        if (first) c.model = first.id;
+      }
+      return c;
+    };
+    (async () => {
+      // Prefer a server-saved key (syncs across devices); fall back to this browser's localStorage.
       try {
-        const loaded: KeyCfg = { ...DEFAULT_CFG, ...JSON.parse(raw) };
-        // Snap a stale/unknown saved model to the provider's first valid model.
-        const known = MODELS.find((m) => m.id === loaded.model && m.provider === loaded.provider);
-        if (!known) {
-          const first = MODELS.find((m) => m.provider === loaded.provider);
-          if (first) loaded.model = first.id;
+        const r = await fetch("/api/keys");
+        const j = await r.json();
+        if (j.saved) {
+          const c = snap({ provider: j.provider, model: j.model, baseUrl: j.baseUrl || "", apiKey: "", saved: true });
+          setCfg(c); localStorage.setItem("mm_key", JSON.stringify(c));
+          return;
         }
-        setCfg(loaded);
       } catch {}
-    } else setShowSettings(true);
+      const raw = localStorage.getItem("mm_key");
+      if (raw) { try { setCfg(snap({ ...DEFAULT_CFG, ...JSON.parse(raw) })); } catch {} }
+      else setShowSettings(true);
+    })();
   }, []);
 
   useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight); }, [messages, status]);
@@ -88,7 +97,7 @@ export default function ChatApp({
   async function send(override?: string) {
     const userMsg = (override ?? input).trim();
     if (!userMsg || running) return;
-    if (!cfg.apiKey) { setInput(userMsg); setShowSettings(true); return; }
+    if (!cfg.apiKey && !cfg.saved) { setInput(userMsg); setShowSettings(true); return; }
 
     let threadId = active;
     if (!threadId) {
@@ -294,7 +303,7 @@ export function Composer({
         onChange={(e) => { setInput(e.target.value); autosize(); }}
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
         rows={1}
-        placeholder={cfg.apiKey ? "What can I research for you?" : "Add your API key first (key icon below)…"}
+        placeholder={cfg.apiKey || cfg.saved ? "What can I research for you?" : "Add your API key first (key icon below)…"}
         className="max-h-56 w-full resize-none rounded-xl bg-transparent px-4 py-3 text-[15px] text-white placeholder:text-white/40 outline-none"
       />
       <div className="flex items-center justify-between px-2 pb-1">
@@ -359,13 +368,33 @@ function ModelMenu({ cfg, saveCfg, openSettings }: { cfg: KeyCfg; saveCfg: (c: K
 /* ---------- Settings modal ---------- */
 function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyCfg) => void; onClose: () => void }) {
   const [draft, setDraft] = useState<KeyCfg>(cfg);
+  const [remember, setRemember] = useState<boolean>(!!cfg.saved);
+  const [busy, setBusy] = useState(false);
   const models = MODELS.filter((m) => m.provider === draft.provider);
+  const canSave = !!draft.apiKey || !!cfg.saved; // already-saved key can be kept without re-typing
+
+  async function save() {
+    setBusy(true);
+    try {
+      if (remember && draft.apiKey) {
+        await fetch("/api/keys", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ provider: draft.provider, model: draft.model, baseUrl: draft.baseUrl, apiKey: draft.apiKey }),
+        });
+      } else if (!remember) {
+        await fetch("/api/keys", { method: "DELETE" }); // stop syncing: drop the server copy
+      }
+    } catch {}
+    setBusy(false);
+    // When remembered, don't keep the raw key in this browser — the server holds it (encrypted).
+    onSave({ provider: draft.provider, model: draft.model, baseUrl: draft.baseUrl, apiKey: remember ? "" : draft.apiKey, saved: remember });
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-edge bg-panel p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold">API key &amp; model</h2>
-        <p className="mt-1 text-xs text-white/50">Your key is stored only in this browser and sent per request. Never saved on our servers.</p>
+        <p className="mt-1 text-xs text-white/50">By default your key stays in this browser and is sent per request. Tick “save” below to store it encrypted on your account so it syncs to other devices.</p>
 
         <label className="mt-4 block text-xs uppercase text-white/40">Provider</label>
         <select value={draft.provider}
@@ -393,7 +422,7 @@ function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyC
 
         <label className="mt-4 block text-xs uppercase text-white/40">API key</label>
         <input type="password" value={draft.apiKey} onChange={(e) => setDraft({ ...draft, apiKey: e.target.value })}
-          placeholder="sk-… / your provider key"
+          placeholder={cfg.saved ? "Key saved on your account (leave blank to keep it)" : "sk-… / your provider key"}
           className="mt-1 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-sm outline-none focus:border-accent" />
 
         <label className="mt-4 block text-xs uppercase text-white/40">Custom base URL (optional)</label>
@@ -401,10 +430,18 @@ function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyC
           placeholder="Leave blank to use the provider default"
           className="mt-1 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-sm outline-none focus:border-accent" />
 
+        <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-edge bg-ink/50 p-3">
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="mt-0.5 h-4 w-4 accent-accent2" />
+          <span className="text-sm">
+            <span className="font-medium">Save my key to my account (encrypted)</span>
+            <span className="mt-0.5 block text-xs text-white/45">AES-256 encrypted at rest. Syncs to your other devices so you don’t re-enter it. Uncheck to remove it and keep the key in this browser only.</span>
+          </span>
+        </label>
+
         <div className="mt-6 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-lg border border-edge px-4 py-2 text-sm text-white/70">Cancel</button>
-          <button onClick={() => onSave(draft)} disabled={!draft.apiKey}
-            className="btn-metal rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-40">Save</button>
+          <button onClick={save} disabled={!canSave || busy}
+            className="btn-metal rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-40">{busy ? "Saving…" : "Save"}</button>
         </div>
       </div>
     </div>
