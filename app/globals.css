@@ -45,3 +45,9 @@ body {
 .prose-chat ul, .prose-chat ol { margin: 0.5rem 0; padding-left: 1.2rem; list-style: disc; }
 .prose-chat code { background: #1c2130; padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.85em; }
 .prose-chat pre { background: #0e1220; padding: 0.8rem; border-radius: 8px; overflow-x: auto; }
+.prose-chat hr { border: 0; border-top: 1px solid #2b3040; margin: 0.9rem 0; }
+.prose-chat .tablewrap { overflow-x: auto; margin: 0.7rem 0; border: 1px solid #2b3040; border-radius: 10px; }
+.prose-chat table.mdtable { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+.prose-chat table.mdtable th, .prose-chat table.mdtable td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #2b3040; white-space: nowrap; }
+.prose-chat table.mdtable th { background: #1a1d27; font-weight: 600; color: #cbd2de; }
+.prose-chat table.mdtable tr:last-child td { border-bottom: 0; }

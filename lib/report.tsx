@@ -11,6 +11,10 @@ const s = StyleSheet.create({
   li: { marginBottom: 3, flexDirection: "row" },
   bullet: { width: 12 },
   foot: { position: "absolute", bottom: 24, left: 48, right: 48, fontSize: 8, color: "#999", textAlign: "center" },
+  table: { marginVertical: 6, borderWidth: 1, borderColor: "#ccc", borderRadius: 4 },
+  trow: { flexDirection: "row", borderBottomWidth: 1, borderColor: "#eee" },
+  th: { flex: 1, padding: 4, fontSize: 9, fontFamily: "Helvetica-Bold", backgroundColor: "#f2f2f4" },
+  td: { flex: 1, padding: 4, fontSize: 9 },
 });
 
 // Minimal Markdown -> react-pdf. Handles #, ##, ###, "- " bullets, and paragraphs.
@@ -18,15 +22,38 @@ function stripInline(t: string) {
   return t.replace(/\*\*(.+?)\*\*/g, "$1").replace(/`(.+?)`/g, "$1").replace(/\[(.+?)\]\((.+?)\)/g, "$1 ($2)");
 }
 
+const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+const isSep = (l: string) => /^\s*\|[\s:|-]+\|\s*$/.test(l);
+const cells = (l: string) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => stripInline(c.trim()));
+
 function render(content: string) {
   const out: React.ReactNode[] = [];
   const lines = content.split("\n");
-  lines.forEach((raw, i) => {
-    const line = raw.trimEnd();
-    if (!line.trim()) return;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trimEnd();
+
+    if (isRow(line) && i + 1 < lines.length && isSep(lines[i + 1])) {
+      const header = cells(line);
+      const rows: string[][] = [];
+      let j = i + 2;
+      while (j < lines.length && isRow(lines[j]) && !isSep(lines[j])) { rows.push(cells(lines[j])); j++; }
+      out.push(
+        <View key={i} style={s.table}>
+          <View style={s.trow}>{header.map((h, k) => <Text key={k} style={s.th}>{h}</Text>)}</View>
+          {rows.map((r, ri) => (
+            <View key={ri} style={s.trow}>{r.map((c, k) => <Text key={k} style={s.td}>{c}</Text>)}</View>
+          ))}
+        </View>
+      );
+      i = j - 1;
+      continue;
+    }
+
+    if (!line.trim()) continue;
     if (line.startsWith("### ")) out.push(<Text key={i} style={s.h2}>{stripInline(line.slice(4))}</Text>);
     else if (line.startsWith("## ")) out.push(<Text key={i} style={s.h1}>{stripInline(line.slice(3))}</Text>);
     else if (line.startsWith("# ")) out.push(<Text key={i} style={s.h1}>{stripInline(line.slice(2))}</Text>);
+    else if (/^\s*---+\s*$/.test(line)) continue;
     else if (/^[-*]\s+/.test(line))
       out.push(
         <View key={i} style={s.li}>
@@ -35,7 +62,7 @@ function render(content: string) {
         </View>
       );
     else out.push(<Text key={i} style={s.p}>{stripInline(line)}</Text>);
-  });
+  }
   return out;
 }
 
