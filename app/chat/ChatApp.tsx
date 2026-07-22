@@ -27,6 +27,7 @@ export default function ChatApp({
   const [showSettings, setShowSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+  const sendingRef = useRef(false); // synchronous lock: blocks duplicate submits before `running` flips
 
   useEffect(() => {
     const snap = (c: KeyCfg): KeyCfg => {
@@ -95,14 +96,16 @@ export default function ChatApp({
   }
 
   async function send(override?: string) {
+    if (sendingRef.current || running) return;
     const userMsg = (override ?? input).trim();
-    if (!userMsg || running) return;
+    if (!userMsg) return;
     if (!cfg.apiKey && !cfg.saved) { setInput(userMsg); setShowSettings(true); return; }
+    sendingRef.current = true;
 
     let threadId = active;
     if (!threadId) {
       const data = await createThread(userMsg.slice(0, 48));
-      if (!data) { setMessages((m) => [...m, { role: "assistant", content: "⚠️ Could not start a chat. Try signing out and back in." }]); return; }
+      if (!data) { setMessages((m) => [...m, { role: "assistant", content: "⚠️ Could not start a chat. Try signing out and back in." }]); sendingRef.current = false; return; }
       threadId = data.id; setThreads([data, ...threads]); setActive(data.id);
     }
 
@@ -145,7 +148,7 @@ export default function ChatApp({
     } catch (e) {
       setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${(e as Error).message}` }]);
     } finally {
-      setRunning(false); setStatus("");
+      setRunning(false); setStatus(""); sendingRef.current = false;
     }
   }
 

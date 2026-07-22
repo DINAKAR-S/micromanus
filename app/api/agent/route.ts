@@ -95,6 +95,9 @@ export async function POST(request: Request) {
           send({ type: "status", text: i === 0 ? "Thinking…" : "Reasoning over results…" });
 
           const forceAnswer = i === MAX_ITERS - 1;
+          if (forceAnswer) {
+            messages.push({ role: "user", content: "Stop searching now. Using everything gathered above, write the complete final research report in Markdown, with a Sources list. Do not ask to search again." });
+          }
           // No temperature: newest models (Sonnet 5, etc.) 400 on it; omitting uses the model default.
           // max_tokens bounds final-report generation time so the run finishes within the 60s function limit.
           const completion = await client.chat.completions.create({
