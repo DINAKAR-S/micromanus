@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { MODELS, PROVIDER_LABEL, findModel, type Provider } from "@/lib/models";
 import { mdToHtml } from "@/lib/md";
+import { ProviderIcon } from "./icons";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUp, Check, ChevronDown, FileDown, KeyRound, Plus, BarChart3, LogOut } from "lucide-react";
 import Link from "next/link";
 
 type Thread = { id: string; title: string; created_at: string };
@@ -25,8 +28,8 @@ export default function ChatApp({
   const [cfg, setCfg] = useState<KeyCfg>(DEFAULT_CFG);
   const [showSettings, setShowSettings] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load saved key config (stays in the browser — never persisted server-side).
   useEffect(() => {
     const raw = localStorage.getItem("mm_key");
     if (raw) { try { setCfg({ ...DEFAULT_CFG, ...JSON.parse(raw) }); } catch {} }
@@ -34,6 +37,12 @@ export default function ChatApp({
   }, []);
 
   useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight); }, [messages, status]);
+
+  function autosize() {
+    const t = taRef.current; if (!t) return;
+    t.style.height = "0px";
+    t.style.height = Math.min(t.scrollHeight, 220) + "px";
+  }
 
   function saveCfg(next: KeyCfg) {
     setCfg(next);
@@ -66,14 +75,13 @@ export default function ChatApp({
     }
 
     const userMsg = input.trim();
-    setInput("");
+    setInput(""); requestAnimationFrame(autosize);
     setMessages((m) => [...m, { role: "user", content: userMsg }]);
     setRunning(true); setStatus("Starting…");
 
     try {
       const res = await fetch("/api/agent", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
+        method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
           threadId, content: userMsg,
           provider: cfg.provider, model: cfg.model,
@@ -85,7 +93,6 @@ export default function ChatApp({
         setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${t || res.statusText}` }]);
         setRunning(false); setStatus(""); return;
       }
-
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -125,16 +132,16 @@ export default function ChatApp({
     URL.revokeObjectURL(url);
   }
 
-  const modelsForProvider = MODELS.filter((m) => m.provider === cfg.provider);
+  const empty = messages.length === 0;
 
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="hidden w-72 shrink-0 flex-col border-r border-edge bg-panel/60 sm:flex">
+      <aside className="hidden w-72 shrink-0 flex-col border-r border-edge bg-panel/50 sm:flex">
         <div className="p-4">
           <div className="text-lg font-bold">Micro<span className="text-accent">Manus</span></div>
-          <button onClick={newChat} className="mt-4 w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium hover:opacity-90">
-            + New chat
+          <button onClick={newChat} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-medium hover:opacity-90">
+            <Plus className="h-4 w-4" /> New chat
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-2">
@@ -147,14 +154,14 @@ export default function ChatApp({
           {threads.length === 0 && <div className="px-3 py-2 text-sm text-white/40">No chats yet.</div>}
         </div>
         <div className="border-t border-edge p-3 text-sm">
-          <div className="flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <span className="text-white/50">Credits</span>
             <span className="rounded-full bg-accent2/20 px-2 py-0.5 font-medium text-accent2">{creditsLeft}</span>
           </div>
-          <Link href="/stats" className="mt-2 block rounded px-2 py-1 text-white/70 hover:bg-panel">📊 Usage & cost</Link>
-          <button onClick={() => setShowSettings(true)} className="block w-full rounded px-2 py-1 text-left text-white/70 hover:bg-panel">🔑 API key & model</button>
+          <Link href="/stats" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-white/70 hover:bg-panel"><BarChart3 className="h-4 w-4" /> Usage &amp; cost</Link>
+          <button onClick={() => setShowSettings(true)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-white/70 hover:bg-panel"><KeyRound className="h-4 w-4" /> API key &amp; model</button>
           <form action="/auth/signout" method="post">
-            <button className="mt-1 w-full rounded px-2 py-1 text-left text-white/40 hover:bg-panel">Sign out ({email})</button>
+            <button className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-white/40 hover:bg-panel"><LogOut className="h-4 w-4" /> Sign out</button>
           </form>
         </div>
       </aside>
@@ -162,90 +169,170 @@ export default function ChatApp({
       {/* Main */}
       <main className="flex flex-1 flex-col">
         <div className="flex items-center justify-between border-b border-edge px-4 py-3 sm:hidden">
-          <button onClick={newChat} className="rounded-lg bg-accent px-3 py-1.5 text-sm">+ New</button>
+          <button onClick={newChat} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-sm"><Plus className="h-4 w-4" /> New</button>
           <span className="text-sm text-accent2">{creditsLeft} credits</span>
-          <button onClick={() => setShowSettings(true)} className="text-sm">🔑</button>
+          <button onClick={() => setShowSettings(true)}><KeyRound className="h-4 w-4" /></button>
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="mx-auto max-w-3xl space-y-5">
-            {messages.length === 0 && (
-              <div className="mt-20 text-center text-white/40">
-                <div className="text-2xl">🔬</div>
-                <p className="mt-2">Ask MicroManus to research anything.</p>
-                <p className="mt-1 text-sm">e.g. “Explain the recent California forest fires — causes and prevention.”</p>
-              </div>
-            )}
-            {messages.map((m, i) => (
-              <div key={i} className={m.role === "user" ? "flex justify-end" : ""}>
-                <div className={m.role === "user"
-                  ? "max-w-[85%] rounded-2xl bg-accent/90 px-4 py-2.5 text-white"
-                  : "w-full rounded-2xl border border-edge bg-panel px-4 py-3"}>
-                  {m.role === "assistant" ? (
-                    <>
-                      <div className="prose-chat text-[15px] text-white/90" dangerouslySetInnerHTML={{ __html: mdToHtml(m.content) }} />
-                      {!m.content.startsWith("⚠️") && (
-                        <button onClick={() => downloadPdf(m.content)}
-                          className="mt-3 rounded-lg border border-edge px-3 py-1.5 text-xs text-white/70 hover:bg-edge">
-                          ⬇ Download PDF report
-                        </button>
-                      )}
-                    </>
-                  ) : <span>{m.content}</span>}
+        <div ref={scrollRef} className={`flex-1 overflow-y-auto px-4 ${empty ? "flex items-center" : "py-6"}`}>
+          <div className="mx-auto w-full max-w-3xl">
+            {empty ? (
+              <div className="w-full">
+                <h1 className="text-center text-4xl font-semibold tracking-tight text-white/90">
+                  How can I help you<span className="text-accent">?</span>
+                </h1>
+                <p className="mt-3 text-center text-white/50">Deep research with live web search. Ask anything.</p>
+                <div className="mt-8"><Composer {...{ taRef, input, setInput, autosize, send, running, cfg, saveCfg, setShowSettings }} /></div>
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  {[
+                    "Recent California forest fires — causes & prevention",
+                    "State of solid-state batteries in 2026",
+                    "Compare Perplexity vs Manus UX",
+                  ].map((s) => (
+                    <button key={s} onClick={() => { setInput(s); requestAnimationFrame(autosize); taRef.current?.focus(); }}
+                      className="rounded-full border border-edge bg-panel/60 px-3 py-1.5 text-xs text-white/60 hover:bg-panel hover:text-white/90">
+                      {s}
+                    </button>
+                  ))}
                 </div>
               </div>
-            ))}
-            {running && (
-              <div className="w-full rounded-2xl border border-edge bg-panel px-4 py-3 text-sm text-accent2">
-                <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-accent2" />
-                {status || "Working…"}
+            ) : (
+              <div className="space-y-5 pb-4">
+                {messages.map((m, i) => (
+                  <div key={i} className={m.role === "user" ? "flex justify-end" : ""}>
+                    <div className={m.role === "user"
+                      ? "max-w-[85%] rounded-2xl bg-accent/90 px-4 py-2.5 text-white"
+                      : "w-full rounded-2xl border border-edge bg-panel px-4 py-3"}>
+                      {m.role === "assistant" ? (
+                        <>
+                          <div className="prose-chat text-[15px] text-white/90" dangerouslySetInnerHTML={{ __html: mdToHtml(m.content) }} />
+                          {!m.content.startsWith("⚠️") && (
+                            <button onClick={() => downloadPdf(m.content)}
+                              className="mt-3 flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-xs text-white/70 hover:bg-edge">
+                              <FileDown className="h-3.5 w-3.5" /> Download PDF report
+                            </button>
+                          )}
+                        </>
+                      ) : <span>{m.content}</span>}
+                    </div>
+                  </div>
+                ))}
+                {running && (
+                  <div className="w-full rounded-2xl border border-edge bg-panel px-4 py-3 text-sm text-accent2">
+                    <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-accent2" />
+                    {status || "Working…"}
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Composer */}
-        <div className="border-t border-edge px-4 py-3">
-          <div className="mx-auto flex max-w-3xl items-end gap-2">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              rows={1}
-              placeholder={cfg.apiKey ? "Ask a research question…" : "Add your API key first (🔑)…"}
-              className="max-h-40 flex-1 resize-none rounded-xl border border-edge bg-ink px-4 py-3 text-sm outline-none focus:border-accent"
-            />
-            <button onClick={send} disabled={running || !input.trim()}
-              className="rounded-xl bg-accent px-5 py-3 text-sm font-medium hover:opacity-90 disabled:opacity-40">
-              {running ? "…" : "Send"}
-            </button>
+        {/* Composer pinned at bottom once a conversation exists */}
+        {!empty && (
+          <div className="px-4 pb-4">
+            <div className="mx-auto max-w-3xl">
+              <Composer {...{ taRef, input, setInput, autosize, send, running, cfg, saveCfg, setShowSettings }} />
+            </div>
           </div>
-          <div className="mx-auto mt-1 max-w-3xl text-center text-xs text-white/30">
-            {PROVIDER_LABEL[cfg.provider]} · {findModel(cfg.model)?.label || cfg.model} · 1 credit / run
-          </div>
-        </div>
+        )}
       </main>
 
       {showSettings && (
-        <SettingsModal cfg={cfg} onSave={(c) => { saveCfg(c); setShowSettings(false); }} onClose={() => setShowSettings(false)} modelsForProvider={modelsForProvider} />
+        <SettingsModal cfg={cfg} onSave={(c) => { saveCfg(c); setShowSettings(false); }} onClose={() => setShowSettings(false)} />
       )}
     </div>
   );
 }
 
-function SettingsModal({
-  cfg, onSave, onClose, modelsForProvider,
+/* ---------- Composer (animated AI input look) ---------- */
+export function Composer({
+  taRef, input, setInput, autosize, send, running, cfg, saveCfg, setShowSettings,
 }: {
-  cfg: KeyCfg; onSave: (c: KeyCfg) => void; onClose: () => void;
-  modelsForProvider: typeof MODELS;
+  taRef: React.RefObject<HTMLTextAreaElement | null>;
+  input: string; setInput: (s: string) => void; autosize: () => void;
+  send: () => void; running: boolean; cfg: KeyCfg;
+  saveCfg: (c: KeyCfg) => void; setShowSettings: (b: boolean) => void;
 }) {
+  return (
+    <div className="rounded-2xl bg-white/5 p-1.5 ring-1 ring-edge">
+      <textarea
+        ref={taRef}
+        value={input}
+        onChange={(e) => { setInput(e.target.value); autosize(); }}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+        rows={1}
+        placeholder={cfg.apiKey ? "What can I research for you?" : "Add your API key first (key icon below)…"}
+        className="max-h-56 w-full resize-none rounded-xl bg-transparent px-4 py-3 text-[15px] text-white placeholder:text-white/40 outline-none"
+      />
+      <div className="flex items-center justify-between px-2 pb-1">
+        <ModelMenu cfg={cfg} saveCfg={saveCfg} openSettings={() => setShowSettings(true)} />
+        <button
+          onClick={send}
+          disabled={running || !input.trim()}
+          aria-label="Send"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white transition-opacity hover:opacity-90 disabled:opacity-30"
+        >
+          <ArrowUp className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ModelMenu({ cfg, saveCfg, openSettings }: { cfg: KeyCfg; saveCfg: (c: KeyCfg) => void; openSettings: () => void }) {
+  const [open, setOpen] = useState(false);
+  const models = MODELS.filter((m) => m.provider === cfg.provider);
+  const label = findModel(cfg.model)?.label || cfg.model;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-white/80 hover:bg-white/10"
+      >
+        <ProviderIcon provider={cfg.provider} />
+        <AnimatePresence mode="wait">
+          <motion.span key={cfg.model} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }} transition={{ duration: 0.15 }}>
+            {label}
+          </motion.span>
+        </AnimatePresence>
+        <ChevronDown className="h-3 w-3 opacity-50" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-11 left-0 z-20 min-w-[15rem] rounded-xl border border-edge bg-panel p-1 shadow-xl">
+            <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-white/30">{PROVIDER_LABEL[cfg.provider]}</div>
+            {models.map((m) => (
+              <button key={m.id} onClick={() => { saveCfg({ ...cfg, model: m.id }); setOpen(false); }}
+                className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-white/85 hover:bg-white/10">
+                <span className="flex items-center gap-2"><ProviderIcon provider={m.provider} /> {m.label}</span>
+                {cfg.model === m.id && <Check className="h-4 w-4 text-accent2" />}
+              </button>
+            ))}
+            <div className="my-1 h-px bg-edge" />
+            <button onClick={() => { setOpen(false); openSettings(); }}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-white/60 hover:bg-white/10">
+              <KeyRound className="h-4 w-4" /> Change provider / API key
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Settings modal ---------- */
+function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyCfg) => void; onClose: () => void }) {
   const [draft, setDraft] = useState<KeyCfg>(cfg);
   const models = MODELS.filter((m) => m.provider === draft.provider);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-edge bg-panel p-6" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-bold">API key & model</h2>
+        <h2 className="text-lg font-bold">API key &amp; model</h2>
         <p className="mt-1 text-xs text-white/50">Your key is stored only in this browser and sent per request. Never saved on our servers.</p>
 
         <label className="mt-4 block text-xs uppercase text-white/40">Provider</label>
