@@ -30,8 +30,18 @@ export default function ChatApp({
 
   useEffect(() => {
     const raw = localStorage.getItem("mm_key");
-    if (raw) { try { setCfg({ ...DEFAULT_CFG, ...JSON.parse(raw) }); } catch {} }
-    else setShowSettings(true);
+    if (raw) {
+      try {
+        const loaded: KeyCfg = { ...DEFAULT_CFG, ...JSON.parse(raw) };
+        // Snap a stale/unknown saved model to the provider's first valid model.
+        const known = MODELS.find((m) => m.id === loaded.model && m.provider === loaded.provider);
+        if (!known) {
+          const first = MODELS.find((m) => m.provider === loaded.provider);
+          if (first) loaded.model = first.id;
+        }
+        setCfg(loaded);
+      } catch {}
+    } else setShowSettings(true);
   }, []);
 
   useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight); }, [messages, status]);
