@@ -92,8 +92,8 @@ export default async function Landing() {
         <div className="mt-6">
           <Link href="/login" className="btn-metal inline-flex rounded-xl px-7 py-3 font-semibold">Start researching</Link>
         </div>
-        <p className="mt-4 text-sm text-white/50">
-          New here? Sign in, then the coupon <span className="font-semibold text-accent2">SID_DRDROID</span> is pre-filled on the paywall for 5 free credits.
+        <p className="mt-4 text-sm text-white/60">
+          ✨ Enjoy <span className="font-semibold text-accent2">5 free credits</span> — sign in, and coupon <span className="font-semibold text-accent2">SID_DRDROID</span> is pre-filled on the paywall.
         </p>
       </main>
 
@@ -126,7 +126,7 @@ export default async function Landing() {
       <section className="mx-auto max-w-4xl px-5 pb-20 pt-14">
         <div className="grid grid-cols-1 gap-4 text-left sm:grid-cols-3">
           {[
-            ["Sign in", "GitHub or Google. Unlock 5 credits with a coupon or a $5 top-up."],
+            ["Sign in", "Sign in with GitHub. Use coupon SID_DRDROID or a $5 top-up for 5 credits."],
             ["Ask", "Give it a research task. It plans, searches, reads, and reasons in a loop."],
             ["Get a report", "Download a cited PDF. See exact token cost per chat and model."],
           ].map(([t, d], i) => (

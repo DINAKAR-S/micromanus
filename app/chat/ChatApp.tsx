@@ -368,6 +368,47 @@ function ModelMenu({ cfg, saveCfg, openSettings }: { cfg: KeyCfg; saveCfg: (c: K
   );
 }
 
+/* ---------- Premium dropdown ---------- */
+function Dropdown({ value, options, onChange, placeholder }: {
+  value: string;
+  options: { value: string; label: string; hint?: string; icon?: React.ReactNode }[];
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const cur = options.find((o) => o.value === value);
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-edge bg-ink px-3 py-2.5 text-sm text-white/90 transition hover:border-white/25">
+        <span className="flex min-w-0 items-center gap-2 truncate">
+          {cur?.icon}
+          <span className="truncate">{cur?.label || placeholder || "Select…"}</span>
+          {cur?.hint && <span className="shrink-0 text-white/40">· {cur.hint}</span>}
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 opacity-50 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 right-0 z-50 mt-1.5 max-h-64 overflow-auto rounded-xl border border-edge bg-panel p-1.5 shadow-2xl shadow-black/60">
+            {options.map((o) => (
+              <button type="button" key={o.value} onClick={() => { onChange(o.value); setOpen(false); }}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-white/10 ${o.value === value ? "bg-white/5 text-accent2" : "text-white/85"}`}>
+                <span className="flex min-w-0 items-center gap-2 truncate">
+                  {o.icon}<span className="truncate">{o.label}</span>
+                  {o.hint && <span className="shrink-0 text-white/40">· {o.hint}</span>}
+                </span>
+                {o.value === value && <Check className="h-4 w-4 shrink-0" />}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Settings modal ---------- */
 function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyCfg) => void; onClose: () => void }) {
   const [draft, setDraft] = useState<KeyCfg>(cfg);
@@ -400,24 +441,23 @@ function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyC
         <p className="mt-1 text-xs text-white/50">By default your key stays in this browser and is sent per request. Tick “save” below to store it encrypted on your account so it syncs to other devices.</p>
 
         <label className="mt-4 block text-xs uppercase text-white/40">Provider</label>
-        <select value={draft.provider}
-          onChange={(e) => {
-            const provider = e.target.value as Provider;
-            const first = MODELS.find((m) => m.provider === provider)!;
-            setDraft({ ...draft, provider, model: first.id });
-          }}
-          className="mt-1 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-sm">
-          {(["openai", "anthropic", "moonshot"] as Provider[]).map((p) => (
-            <option key={p} value={p}>{PROVIDER_LABEL[p]}</option>
-          ))}
-        </select>
+        <div className="mt-1">
+          <Dropdown
+            value={draft.provider}
+            options={(["openai", "anthropic", "moonshot"] as Provider[]).map((p) => ({ value: p, label: PROVIDER_LABEL[p], icon: <ProviderIcon provider={p} /> }))}
+            onChange={(v) => { const first = MODELS.find((m) => m.provider === (v as Provider))!; setDraft({ ...draft, provider: v as Provider, model: first.id }); }}
+          />
+        </div>
 
         <label className="mt-4 block text-xs uppercase text-white/40">Model</label>
-        <select value={models.some((m) => m.id === draft.model) ? draft.model : ""} onChange={(e) => setDraft({ ...draft, model: e.target.value })}
-          className="mt-1 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-sm">
-          <option value="" disabled>Choose a model…</option>
-          {models.map((m) => <option key={m.id} value={m.id}>{m.label} · ${m.input}/{m.output} per 1M</option>)}
-        </select>
+        <div className="mt-1">
+          <Dropdown
+            value={models.some((m) => m.id === draft.model) ? draft.model : ""}
+            placeholder="Choose a model…"
+            options={models.map((m) => ({ value: m.id, label: `${m.label}`, hint: `$${m.input}/${m.output} per 1M`, icon: <ProviderIcon provider={m.provider} /> }))}
+            onChange={(v) => setDraft({ ...draft, model: v })}
+          />
+        </div>
         <input value={draft.model} onChange={(e) => setDraft({ ...draft, model: e.target.value })}
           placeholder="or exact model ID, e.g. claude-3-5-sonnet-20241022"
           className="mt-2 w-full rounded-lg border border-edge bg-ink px-3 py-2 text-xs text-white/70 outline-none focus:border-accent" />
