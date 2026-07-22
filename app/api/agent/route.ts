@@ -86,10 +86,10 @@ export async function POST(request: Request) {
           send({ type: "status", text: i === 0 ? "Thinking…" : "Reasoning over results…" });
 
           const forceAnswer = i === MAX_ITERS - 1;
+          // No temperature: newest models (Sonnet 5, etc.) 400 on it; omitting uses the model default.
           const completion = await client.chat.completions.create({
             model,
             messages,
-            temperature: 0.3,
             tools: forceAnswer ? undefined : TOOLS,
             tool_choice: forceAnswer ? undefined : "auto",
           });
