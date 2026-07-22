@@ -92,6 +92,9 @@ export default async function Landing() {
         <div className="mt-6">
           <Link href="/login" className="btn-metal inline-flex rounded-xl px-7 py-3 font-semibold">Start researching</Link>
         </div>
+        <p className="mt-4 text-sm text-white/50">
+          New here? Sign in, then the coupon <span className="font-semibold text-accent2">SID_DRDROID</span> is pre-filled on the paywall for 5 free credits.
+        </p>
       </main>
 
       {/* Provider marquee */}
