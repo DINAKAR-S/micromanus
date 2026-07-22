@@ -32,11 +32,11 @@ export const MODELS: ModelInfo[] = [
   { id: "gpt-4o-mini", label: "GPT-4o mini", provider: "openai", input: 0.15, output: 0.6, cache: 0.075 },
   { id: "gpt-4.1", label: "GPT-4.1", provider: "openai", input: 2, output: 8, cache: 0.5 },
   { id: "o3-mini", label: "o3-mini", provider: "openai", input: 1.1, output: 4.4, cache: 0.55 },
-  // Claude (Anthropic) — via OpenAI-compatible endpoint. Exact dated IDs ("-latest" aliases 404 there).
-  { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4", provider: "anthropic", input: 3, output: 15, cache: 0.3 },
-  { id: "claude-3-7-sonnet-20250219", label: "Claude 3.7 Sonnet", provider: "anthropic", input: 3, output: 15, cache: 0.3 },
-  { id: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", provider: "anthropic", input: 3, output: 15, cache: 0.3 },
-  { id: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", provider: "anthropic", input: 0.8, output: 4, cache: 0.08 },
+  // Claude (Anthropic) — via OpenAI-compatible endpoint. Current 2026 model IDs.
+  { id: "claude-sonnet-5", label: "Claude Sonnet 5", provider: "anthropic", input: 3, output: 15, cache: 0.3 },
+  { id: "claude-opus-4-8", label: "Claude Opus 4.8", provider: "anthropic", input: 15, output: 75, cache: 1.5 },
+  { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5", provider: "anthropic", input: 3, output: 15, cache: 0.3 },
+  { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", provider: "anthropic", input: 1, output: 5, cache: 0.1 },
   // Kimi (Moonshot)
   { id: "kimi-k2-0711-preview", label: "Kimi K2", provider: "moonshot", input: 0.6, output: 2.5, cache: 0.15 },
   { id: "moonshot-v1-8k", label: "Moonshot v1 8k", provider: "moonshot", input: 0.2, output: 2, cache: 0.05 },
