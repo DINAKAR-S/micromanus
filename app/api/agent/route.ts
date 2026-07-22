@@ -7,14 +7,14 @@ import { tavilySearch } from "@/lib/search";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_ITERS = 6;
+const MAX_ITERS = 4;
 
-const SYS = `You are MicroManus, a deep-research agent. Work in a loop: think, call web_search when you need facts, read the results, then think again — repeat until you can answer well.
+const SYS = `You are MicroManus, a deep-research agent. Work in a loop: think, call web_search when you need facts, read the results, then think again.
 Rules:
 - ALWAYS ground claims in search results; do not invent sources.
-- Prefer several targeted searches over one broad one.
-- When you have enough, write a clear, well-structured final answer in Markdown with headings, short paragraphs, and a "Sources" list of the URLs you used.
-- Be concise but complete.`;
+- Be efficient: do at most ONE or TWO searches per step, and stop searching as soon as you have enough. You have a strict time budget, so finish with a solid answer rather than over-researching.
+- When ready, write a clear, well-structured Markdown report with headings, short paragraphs, and a "Sources" list of the URLs you used.
+- Keep it focused and concise.`;
 
 const TOOLS = [
   {
@@ -87,9 +87,11 @@ export async function POST(request: Request) {
 
           const forceAnswer = i === MAX_ITERS - 1;
           // No temperature: newest models (Sonnet 5, etc.) 400 on it; omitting uses the model default.
+          // max_tokens bounds final-report generation time so the run finishes within the 60s function limit.
           const completion = await client.chat.completions.create({
             model,
             messages,
+            max_tokens: 2000,
             tools: forceAnswer ? undefined : TOOLS,
             tool_choice: forceAnswer ? undefined : "auto",
           });

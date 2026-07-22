@@ -7,7 +7,7 @@ export interface SearchResult {
 
 export async function tavilySearch(
   query: string,
-  maxResults = 5
+  maxResults = 4
 ): Promise<{ answer: string | null; results: SearchResult[] }> {
   const key = process.env.TAVILY_API_KEY;
   if (!key || key.includes("placeholder")) {
@@ -21,7 +21,7 @@ export async function tavilySearch(
       api_key: key,
       query,
       max_results: maxResults,
-      search_depth: "advanced",
+      search_depth: "basic", // basic is ~3x faster than advanced; keeps runs under the 60s function limit
       include_answer: true,
     }),
   });
@@ -35,7 +35,7 @@ export async function tavilySearch(
     results: (data.results ?? []).map((x: any) => ({
       title: x.title,
       url: x.url,
-      content: (x.content ?? "").slice(0, 1500),
+      content: (x.content ?? "").slice(0, 800),
     })),
   };
 }
