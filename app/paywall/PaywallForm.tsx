@@ -75,7 +75,7 @@ export default function PaywallForm({ justPaid }: { justPaid: boolean }) {
         <button
           onClick={pay}
           disabled={busy !== ""}
-          className="w-full rounded-lg bg-accent px-4 py-3 font-medium text-white hover:opacity-90 disabled:opacity-40"
+          className="btn-metal w-full rounded-lg px-4 py-3 font-semibold disabled:opacity-40"
         >
           {busy === "pay" ? "Starting checkout…" : "Add a card & pay $5"}
         </button>

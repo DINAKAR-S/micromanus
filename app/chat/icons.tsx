@@ -1,5 +1,14 @@
 import type { Provider } from "@/lib/models";
 
+// Neutral silver spark for providers we don't ship a dedicated mark for.
+export function Spark() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 2l2.2 6.3L20 10.5l-5.8 2.2L12 19l-2.2-6.3L4 10.5l5.8-2.2L12 2z" fill="#c7cedb" />
+    </svg>
+  );
+}
+
 // Small provider marks. White fill for the dark UI.
 export function ProviderIcon({ provider }: { provider: Provider }) {
   if (provider === "anthropic") {

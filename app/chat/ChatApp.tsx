@@ -62,19 +62,19 @@ export default function ChatApp({
     setMessages((data as Msg[]) || []);
   }
 
-  async function send() {
-    if (!input.trim() || running) return;
-    if (!cfg.apiKey) { setShowSettings(true); return; }
+  async function send(override?: string) {
+    const userMsg = (override ?? input).trim();
+    if (!userMsg || running) return;
+    if (!cfg.apiKey) { setInput(userMsg); setShowSettings(true); return; }
 
     let threadId = active;
     if (!threadId) {
-      const title = input.trim().slice(0, 48);
+      const title = userMsg.slice(0, 48);
       const { data } = await supabase.from("threads").insert({ title }).select().single();
       if (!data) return;
       threadId = data.id; setThreads([data, ...threads]); setActive(data.id);
     }
 
-    const userMsg = input.trim();
     setInput(""); requestAnimationFrame(autosize);
     setMessages((m) => [...m, { role: "user", content: userMsg }]);
     setRunning(true); setStatus("Starting…");
@@ -140,7 +140,7 @@ export default function ChatApp({
       <aside className="hidden w-72 shrink-0 flex-col border-r border-edge bg-panel/50 sm:flex">
         <div className="p-4">
           <div className="text-lg font-bold">Micro<span className="text-accent">Manus</span></div>
-          <button onClick={newChat} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-medium hover:opacity-90">
+          <button onClick={newChat} className="btn-metal mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold">
             <Plus className="h-4 w-4" /> New chat
           </button>
         </div>
@@ -169,7 +169,7 @@ export default function ChatApp({
       {/* Main */}
       <main className="flex flex-1 flex-col">
         <div className="flex items-center justify-between border-b border-edge px-4 py-3 sm:hidden">
-          <button onClick={newChat} className="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-sm"><Plus className="h-4 w-4" /> New</button>
+          <button onClick={newChat} className="btn-metal flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium"><Plus className="h-4 w-4" /> New</button>
           <span className="text-sm text-accent2">{creditsLeft} credits</span>
           <button onClick={() => setShowSettings(true)}><KeyRound className="h-4 w-4" /></button>
         </div>
@@ -183,15 +183,18 @@ export default function ChatApp({
                 </h1>
                 <p className="mt-3 text-center text-white/50">Deep research with live web search. Ask anything.</p>
                 <div className="mt-8"><Composer {...{ taRef, input, setInput, autosize, send, running, cfg, saveCfg, setShowSettings }} /></div>
-                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                   {[
-                    "Recent California forest fires: causes and prevention",
-                    "State of solid-state batteries in 2026",
-                    "Compare Perplexity vs Manus UX",
-                  ].map((s) => (
-                    <button key={s} onClick={() => { setInput(s); requestAnimationFrame(autosize); taRef.current?.focus(); }}
-                      className="rounded-full border border-edge bg-panel/60 px-3 py-1.5 text-xs text-white/60 hover:bg-panel hover:text-white/90">
-                      {s}
+                    ["📈", "Research today's Indian stock market movers"],
+                    ["🔥", "Recent California forest fires: causes and prevention"],
+                    ["🔋", "State of solid-state batteries in 2026"],
+                    ["🧭", "Compare Perplexity vs Manus on UX"],
+                  ].map(([icon, s]) => (
+                    <button key={s} onClick={() => send(s)}
+                      className="flex items-center gap-3 rounded-xl border border-edge bg-panel/50 px-4 py-3 text-left text-sm text-white/70 transition hover:border-silver/50 hover:bg-panel hover:text-white">
+                      <span className="text-base leading-none">{icon}</span>
+                      <span className="flex-1">{s}</span>
+                      <span className="text-white/30">↗</span>
                     </button>
                   ))}
                 </div>
@@ -201,7 +204,7 @@ export default function ChatApp({
                 {messages.map((m, i) => (
                   <div key={i} className={m.role === "user" ? "flex justify-end" : ""}>
                     <div className={m.role === "user"
-                      ? "max-w-[85%] rounded-2xl bg-accent/90 px-4 py-2.5 text-white"
+                      ? "max-w-[85%] rounded-2xl bg-accent px-4 py-2.5 font-medium text-ink"
                       : "w-full rounded-2xl border border-edge bg-panel px-4 py-3"}>
                       {m.role === "assistant" ? (
                         <>
@@ -268,10 +271,10 @@ export function Composer({
       <div className="flex items-center justify-between px-2 pb-1">
         <ModelMenu cfg={cfg} saveCfg={saveCfg} openSettings={() => setShowSettings(true)} />
         <button
-          onClick={send}
+          onClick={() => send()}
           disabled={running || !input.trim()}
           aria-label="Send"
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white transition-opacity hover:opacity-90 disabled:opacity-30"
+          className="btn-metal flex h-9 w-9 items-center justify-center rounded-xl disabled:opacity-30"
         >
           <ArrowUp className="h-4 w-4" />
         </button>
@@ -367,7 +370,7 @@ function SettingsModal({ cfg, onSave, onClose }: { cfg: KeyCfg; onSave: (c: KeyC
         <div className="mt-6 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-lg border border-edge px-4 py-2 text-sm text-white/70">Cancel</button>
           <button onClick={() => onSave(draft)} disabled={!draft.apiKey}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium disabled:opacity-40">Save</button>
+            className="btn-metal rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-40">Save</button>
         </div>
       </div>
     </div>

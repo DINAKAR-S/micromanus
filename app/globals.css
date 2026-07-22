@@ -4,15 +4,41 @@
 
 html, body { height: 100%; }
 body {
-  background: radial-gradient(1200px 600px at 20% -10%, #1b1e2e 0%, #0b0d12 55%);
-  color: #e7e9ee;
+  background:
+    radial-gradient(1100px 520px at 50% -10%, rgba(199,206,219,0.10) 0%, transparent 60%),
+    radial-gradient(900px 500px at 15% 10%, #1a1d27 0%, transparent 55%),
+    #0a0b0f;
+  color: #e9ecf2;
   -webkit-font-smoothing: antialiased;
 }
 
-/* thin scrollbars for the chat/threads panes */
-* { scrollbar-width: thin; scrollbar-color: #2a3040 transparent; }
+* { scrollbar-width: thin; scrollbar-color: #2f3545 transparent; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 8px; }
+*::-webkit-scrollbar-thumb { background: #2f3545; border-radius: 8px; }
+
+/* Silver metallic gradient text + glow */
+.metal-text {
+  background: linear-gradient(180deg, #ffffff 0%, #cbd2de 45%, #8b93a7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.glow { text-shadow: 0 0 26px rgba(199,206,219,0.35), 0 0 10px rgba(199,206,219,0.25); }
+
+/* Chrome/metallic button */
+.btn-metal {
+  background: linear-gradient(180deg, #f4f6fa 0%, #cbd2de 55%, #aab2c2 100%);
+  color: #0a0b0f;
+  border: 1px solid rgba(255,255,255,0.5);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 24px rgba(0,0,0,0.35);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.btn-metal:hover { filter: brightness(1.04); box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 10px 30px rgba(150,161,184,0.35); }
+.btn-metal:active { transform: translateY(1px); }
+
+/* Marquee */
+.marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee-track { display: flex; width: max-content; gap: 0.75rem; }
 
 .prose-chat p { margin: 0.5rem 0; }
 .prose-chat h1, .prose-chat h2, .prose-chat h3 { margin: 0.8rem 0 0.4rem; font-weight: 600; }
