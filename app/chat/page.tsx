@@ -19,6 +19,7 @@ export default async function ChatPage() {
       initialThreads={threads || []}
       credits={profile.credits}
       email={user.email || ""}
+      userId={user.id}
     />
   );
 }

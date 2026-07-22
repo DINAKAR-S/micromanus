@@ -15,8 +15,8 @@ type KeyCfg = { provider: Provider; model: string; apiKey: string; baseUrl: stri
 const DEFAULT_CFG: KeyCfg = { provider: "openai", model: "gpt-4o-mini", apiKey: "", baseUrl: "" };
 
 export default function ChatApp({
-  initialThreads, credits, email,
-}: { initialThreads: Thread[]; credits: number; email: string }) {
+  initialThreads, credits, email, userId,
+}: { initialThreads: Thread[]; credits: number; email: string; userId: string }) {
   const supabase = createClient();
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
   const [active, setActive] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function ChatApp({
   }
 
   async function newChat() {
-    const { data } = await supabase.from("threads").insert({ title: "New chat" }).select().single();
+    const { data } = await supabase.from("threads").insert({ title: "New chat", user_id: userId }).select().single();
     if (data) { setThreads([data, ...threads]); setActive(data.id); setMessages([]); }
   }
 
@@ -70,7 +70,7 @@ export default function ChatApp({
     let threadId = active;
     if (!threadId) {
       const title = userMsg.slice(0, 48);
-      const { data } = await supabase.from("threads").insert({ title }).select().single();
+      const { data } = await supabase.from("threads").insert({ title, user_id: userId }).select().single();
       if (!data) return;
       threadId = data.id; setThreads([data, ...threads]); setActive(data.id);
     }
